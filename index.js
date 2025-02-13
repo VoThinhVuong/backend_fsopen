@@ -1,7 +1,15 @@
-const { error } = require('console')
 const express = require('express')
-const { request } = require('http')
 const app = express()
+const morgan = require('morgan')
+
+app.use(express.json())
+app.use(morgan('tiny'))
+
+morgan.token('content', function (req, res) { return JSON.stringify(res.locals.body)})
+
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms :content'))
+
+
 
 let persons = [
     { 
@@ -57,23 +65,26 @@ app.delete('/api/persons/delete/:id', (request, response) => {
 
 app.post('/api/persons', (request, response) => {
   const name = request.body.name
-  const number = request.body.id
+  const number = request.body.number
 
-  const dupName = persons.find(person => person.name = name)
-  const dupNum = persons.find(person => person.number = number)
+  const dupName = persons.find(person => person.name == name)
+  const dupNum = persons.find(person => person.number == number)
 
-  if(dupName){
-    response.status(403).send({ error: 'name must be unique'})
-  } else if(dupNum) {
-    response.status(403).send({ error: 'number must be unique'})
+  if(dupName != undefined){
+    return response.status(403).send({ error: 'name must be unique'})
+  } else if(dupNum != undefined) {
+    return response.status(403).send({ error: 'number must be unique'})
   }
 
   let id = parseInt(Math.random() * 1000)
-  while (id == persons.find(person => person.id === id).id) {
+  while (persons.find(person => person.id === id) !== undefined) {
     id = parseInt(Math.random() * 1000)
   }
 
-  response.status(201)
+  persons = persons.concat({id: id, name: name, number: number})
+  response.locals.body = {name: name, number: number} 
+  return response.status(201).end()
+
 })
 
 app.get('/info', (request, response) => {
