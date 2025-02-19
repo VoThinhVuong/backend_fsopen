@@ -2,6 +2,7 @@ const express = require('express')
 const app = express()
 const morgan = require('morgan')
 
+app.use(express.static('dist'))
 app.use(express.json())
 app.use(morgan('tiny'))
 
@@ -81,7 +82,7 @@ app.post('/api/persons', (request, response) => {
     id = parseInt(Math.random() * 1000)
   }
 
-  persons = persons.concat({id: id, name: name, number: number})
+  persons = persons.concat({id: String(id), name: name, number: number})
   response.locals.body = {name: name, number: number} 
   return response.status(201).end()
 
