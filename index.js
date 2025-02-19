@@ -38,17 +38,17 @@ let persons = [
 let ppl = persons.length == 1 ? "person" : "people"
 
 app.get('/api/persons', (request, response) => {
-    response.json(persons)
+  return response.json(persons)
 })
 
 app.get('/api/persons/:id', (request, response) => {
   const id = request.params.id
   const person = persons.find(person => person.id === id)
   if(person){
-    response.json(person)
+    return response.json(person)
   }
   else {
-    response.status(404).send({ error: "Id not found."})
+    return response.status(404).send({ error: "Id not found."})
   }
 })
 
@@ -57,10 +57,11 @@ app.delete('/api/persons/delete/:id', (request, response) => {
   const person = persons.find(person => person.id === id)
   if(person){
     persons = persons.filter(p => p.id !== person.id)
-    response.status(204).end()
+    console.log({...person})
+    return response.status(200).json(person)
   }
   else {
-    response.status(404).send({ error: "Id not found."})
+    return response.status(404).send({ error: "Id not found."})
   }
 })
 
@@ -84,12 +85,12 @@ app.post('/api/persons', (request, response) => {
 
   persons = persons.concat({id: String(id), name: name, number: number})
   response.locals.body = {name: name, number: number} 
-  return response.status(201).end()
+  return response.status(201).json({id: String(id), name: name, number: number})
 
 })
 
 app.get('/info', (request, response) => {
-    response.send(`<p>Phone book has info for ${persons.length} ${ppl}</p> <p>${Date()}</p>`)
+  return response.send(`<p>Phone book has info for ${persons.length} ${ppl}</p> <p>${Date()}</p>`)
 })
 
 const PORT = process.env.PORT || 3001
