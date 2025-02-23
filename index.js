@@ -1,3 +1,5 @@
+const dotenv = require('dotenv')
+dotenv.config()
 const express = require('express')
 const app = express()
 const morgan = require('morgan')
@@ -10,90 +12,120 @@ morgan.token('content', function (req, res) { return JSON.stringify(res.locals.b
 
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :content'))
 
+const Person = require('./models/person')
+const { console } = require('inspector')
 
 
-let persons = [
-    { 
-      id: "1",
-      name: "Arto Hellas", 
-      number: "040-123456"
-    },
-    { 
-      id: "2",
-      name: "Ada Lovelace", 
-      number: "39-44-5323523"
-    },
-    { 
-      id: "3",
-      name: "Dan Abramov", 
-      number: "12-43-234345"
-    },
-    { 
-      id: "4",
-      name: "Mary Poppendieck", 
-      number: "39-23-6423122"
-    }
-]
-
-let ppl = persons.length == 1 ? "person" : "people"
 
 app.get('/api/persons', (request, response) => {
-  return response.json(persons)
+  Person.find({}).then(result => {
+    if(result){
+      console.log(result)
+      return response.json(result)
+    }
+    else response.status(404).send({error: "no entries in db"})
+  })
 })
 
-app.get('/api/persons/:id', (request, response) => {
+app.get('/api/persons/:id', (request, response,next) => {
   const id = request.params.id
-  const person = persons.find(person => person.id === id)
-  if(person){
-    return response.json(person)
-  }
-  else {
-    return response.status(404).send({ error: "Id not found."})
-  }
+  Person.findById(id)
+    .then(result => {
+      if(result) {
+        response.json(result)
+      } else {
+        response.status(404).send({error: "id does not exist"})
+      }
+    })
+    .catch(error => next(error))
 })
 
 app.delete('/api/persons/delete/:id', (request, response) => {
   const id = request.params.id
-  const person = persons.find(person => person.id === id)
-  if(person){
-    persons = persons.filter(p => p.id !== person.id)
-    console.log({...person})
-    return response.status(200).json(person)
-  }
-  else {
-    return response.status(404).send({ error: "Id not found."})
-  }
+  console.log(id)
+  Person.findByIdAndDelete(id)
+    .then(result => {
+      if(result)
+        return response.json(result)
+      else
+        return response.status(404).send({error: "id does not exist"})
+    })
+    .catch(error => next(error))
 })
 
 app.post('/api/persons', (request, response) => {
   const name = request.body.name
   const number = request.body.number
 
-  const dupName = persons.find(person => person.name == name)
-  const dupNum = persons.find(person => person.number == number)
+  if(name == '' || number == '') return response.status(400).send({error: 'name and number must not be empty'})
 
-  if(dupName != undefined){
-    return response.status(403).send({ error: 'name must be unique'})
-  } else if(dupNum != undefined) {
-    return response.status(403).send({ error: 'number must be unique'})
-  }
-
-  let id = parseInt(Math.random() * 1000)
-  while (persons.find(person => person.id === id) !== undefined) {
-    id = parseInt(Math.random() * 1000)
-  }
-
-  persons = persons.concat({id: String(id), name: name, number: number})
-  response.locals.body = {name: name, number: number} 
-  return response.status(201).json({id: String(id), name: name, number: number})
-
+  const person = new Person({
+    name: name,
+    number: number
+  })
+  
+  person.save()
+    .then(result =>{
+      console.log(`added ${result}`)
+      return response.status(201).json(result)
+    })
+    .catch(error => {
+      console.log(error)
+      return response.status(500).end()
+    })
 })
 
 app.get('/info', (request, response) => {
-  return response.send(`<p>Phone book has info for ${persons.length} ${ppl}</p> <p>${Date()}</p>`)
+  Person.find({}).then(result => {
+    if(result){
+      //console.log(result)
+      let ppl = result.length == 1 ? "person" : "people"
+      return response.send(`<p>Phone book has info for ${result.length} ${ppl}</p> <p>${Date()}</p>`)
+    }
+    else response.status(404).end()
+  })
+  .catch(error =>{ 
+    console.log(error)
+    response.status(500).end()
+  })
 })
 
-const PORT = process.env.PORT || 3001
+app.put('/api/persons/:id', (request, response, next) => {
+  const id = request.params.id
+  const newNumber = request.body.number
+  console.log(newNumber)
+
+  Person.findByIdAndUpdate(id,{number: newNumber}, {new: true})
+    .then(result =>{
+      if (result) {
+        return response.json(result)
+      }
+      else {
+        return response.status(404).send({error: "id does not exist"})
+      }
+    })
+    .catch(error => next(error))
+})
+
+const unknownEndpoint = (request, response) => {
+  response.status(404).send({ error: 'unknown endpoint' })
+}
+
+app.use(unknownEndpoint)
+
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message)
+
+  if (error.name === 'CastError') {
+    return response.status(400).send({ error: 'malformatted id' })
+  } 
+
+  next(error)
+}
+
+app.use(errorHandler)
+
+const PORT = process.env.PORT
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
 })
