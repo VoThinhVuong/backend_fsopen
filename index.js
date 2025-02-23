@@ -23,7 +23,7 @@ app.get('/api/persons', (request, response) => {
       console.log(result)
       return response.json(result)
     }
-    else response.status(404).send({error: "no entries in db"})
+    else response.status(404).send({ error: 'no entries in db' })
   })
 })
 
@@ -34,13 +34,13 @@ app.get('/api/persons/:id', (request, response,next) => {
       if(result) {
         response.json(result)
       } else {
-        response.status(404).send({error: "id does not exist"})
+        response.status(404).send({ error: 'id does not exist' })
       }
     })
     .catch(error => next(error))
 })
 
-app.delete('/api/persons/delete/:id', (request, response) => {
+app.delete('/api/persons/delete/:id', (request, response,next) => {
   const id = request.params.id
   console.log(id)
   Person.findByIdAndDelete(id)
@@ -48,7 +48,7 @@ app.delete('/api/persons/delete/:id', (request, response) => {
       if(result)
         return response.json(result)
       else
-        return response.status(404).send({error: "id does not exist"})
+        return response.status(404).send({ error: 'id does not exist' })
     })
     .catch(error => next(error))
 })
@@ -63,9 +63,9 @@ app.post('/api/persons', (request, response,next) => {
     name: name,
     number: number
   })
-  
+
   person.save()
-    .then(result =>{
+    .then(result => {
       console.log(`added ${result}`)
       return response.status(201).json(result)
     })
@@ -78,15 +78,15 @@ app.get('/info', (request, response) => {
   Person.find({}).then(result => {
     if(result){
       //console.log(result)
-      let ppl = result.length == 1 ? "person" : "people"
+      let ppl = result.length === 1 ? 'person' : 'people'
       return response.send(`<p>Phone book has info for ${result.length} ${ppl}</p> <p>${Date()}</p>`)
     }
     else response.status(404).end()
   })
-  .catch(error =>{ 
-    console.log(error)
-    response.status(500).end()
-  })
+    .catch(error => {
+      console.log(error)
+      response.status(500).end()
+    })
 })
 
 app.put('/api/persons/:id', (request, response, next) => {
@@ -94,13 +94,13 @@ app.put('/api/persons/:id', (request, response, next) => {
   const newNumber = request.body.number
   console.log(newNumber)
 
-  Person.findByIdAndUpdate(id,{number: newNumber}, { new: true, runValidators: true, context: 'query' })
-    .then(result =>{
+  Person.findByIdAndUpdate(id,{ number: newNumber }, { new: true, runValidators: true, context: 'query' })
+    .then(result => {
       if (result) {
         return response.json(result)
       }
       else {
-        return response.status(404).send({error: "id does not exist"})
+        return response.status(404).send({ error: 'id does not exist' })
       }
     })
     .catch(error => next(error))
@@ -128,5 +128,5 @@ app.use(errorHandler)
 
 const PORT = process.env.PORT
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`)
+  console.log(`Server running on port ${PORT}`)
 })
